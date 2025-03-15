@@ -1,4 +1,4 @@
-package com.example.dochandler.converter;
+package document.dochandler.converter;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -13,16 +13,18 @@ public class ToWordConverter {
      * 将文件转换为 Word 类型
      *
      * @param inputFile      输入文件
+     * @param outputPath     输出文件路径
      * @throws Exception 如果转换失败
      */
-    public void wordHandler(File inputFile) throws Exception {
+    public void toWordHandler(File inputFile, String outputPath) throws Exception {
         if (!inputFile.exists() || !inputFile.isFile()) {
             throw new IllegalArgumentException("输入文件不存在或错误");
         }
 
-        // 使用当前文件路径作为输出路径
-        String outputPath = inputFile.getParent() + File.separator +
-                inputFile.getName().replaceFirst("[.][^.]+$", "") + ".docx";
+        if (outputPath == null || outputPath.isEmpty()) {
+            outputPath = inputFile.getParent() + File.separator +
+                    inputFile.getName().replaceFirst("[.][^.]+$", "") + ".docx";
+        }
 
         if (inputFile.getName().endsWith(".txt")) {
             convertTxtToWord(inputFile, outputPath);

@@ -1,4 +1,4 @@
-package com.example.dochandler;
+package document.dochandler;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
