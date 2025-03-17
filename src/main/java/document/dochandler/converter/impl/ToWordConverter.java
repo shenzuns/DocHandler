@@ -1,5 +1,7 @@
-package document.dochandler.converter;
+package document.dochandler.converter.impl;
 
+import document.dochandler.exception.FileConverterException;
+import document.dochandler.utils.FileValidatorUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.ss.usermodel.*;
@@ -14,28 +16,34 @@ public class ToWordConverter {
      *
      * @param inputFile      输入文件
      * @param outputPath     输出文件路径
-     * @throws Exception 如果转换失败
+     * @return 转换后的文件对象
+     * @throws FileConverterException 如果转换失败
      */
-    public void toWordHandler(File inputFile, String outputPath) throws Exception {
-        if (!inputFile.exists() || !inputFile.isFile()) {
-            throw new IllegalArgumentException("输入文件不存在或错误");
-        }
+    public File toWordHandler(File inputFile, String outputPath) {
+        try {
+            if (!FileValidatorUtils.isFileValid(inputFile)) {
+                throw new FileConverterException("输入文件无效");
+            }
 
-        if (outputPath == null || outputPath.isEmpty()) {
-            outputPath = inputFile.getParent() + File.separator +
-                    inputFile.getName().replaceFirst("[.][^.]+$", "") + ".docx";
-        }
+            if (outputPath == null || outputPath.isEmpty()) {
+                outputPath = inputFile.getParent() + File.separator +
+                        inputFile.getName().replaceFirst("[.][^.]+$", "") + ".docx";
+            }
 
-        if (inputFile.getName().endsWith(".txt")) {
-            convertTxtToWord(inputFile, outputPath);
-        }else if (inputFile.getName().endsWith(".pdf")) {
-            convertPdfToWord(inputFile, outputPath);
-        }else if (inputFile.getName().endsWith(".xlsx") || inputFile.getName().endsWith(".xls")) {
-            convertExcelToWord(inputFile, outputPath);
-        }else {
-            throw new IllegalArgumentException("不支持的文件类型");
+            if (inputFile.getName().endsWith(".txt")) {
+                convertTxtToWord(inputFile, outputPath);
+            } else if (inputFile.getName().endsWith(".pdf")) {
+                convertPdfToWord(inputFile, outputPath);
+            } else if (inputFile.getName().endsWith(".xlsx") || inputFile.getName().endsWith(".xls")) {
+                convertExcelToWord(inputFile, outputPath);
+            } else {
+                throw new IllegalArgumentException("不支持的文件类型");
+            }
+
+            return new File(outputPath); // 返回生成的文件对象
+        } catch (Exception e) {
+            throw new FileConverterException("文件转换为Word失败：" + e.getMessage());
         }
-        
     }
 
     private void convertExcelToWord(File inputFile, String outputPath) throws IOException {
@@ -70,7 +78,7 @@ public class ToWordConverter {
     }
 
     private void convertPdfToWord(File inputFile, String outputPath) throws IOException {
-        try (PDDocument document =  PDDocument.load(inputFile)) {
+        try (PDDocument document = PDDocument.load(inputFile)) {
             PDFTextStripper stripper = new PDFTextStripper();
             String pdfText = stripper.getText(document);
 
@@ -84,15 +92,15 @@ public class ToWordConverter {
                     wordDocument.write(out);
                 }
             }
-        }catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            throw new IOException("PDF 转换为 Word 失败：" + e.getMessage());
         }
     }
 
-    private void convertTxtToWord(File inputFile, String outputPath)throws IOException {
+    private void convertTxtToWord(File inputFile, String outputPath) throws IOException {
         try (XWPFDocument document = new XWPFDocument()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
-                String line = null;
+                String line;
                 while ((line = reader.readLine()) != null) {
                     XWPFParagraph paragraph = document.createParagraph();
                     paragraph.createRun().setText(line);
@@ -102,8 +110,7 @@ public class ToWordConverter {
                 document.write(out);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IOException("TXT 转换为 Word 失败：" + e.getMessage());
         }
     }
-
 }
