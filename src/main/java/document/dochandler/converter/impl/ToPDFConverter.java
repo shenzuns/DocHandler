@@ -1,5 +1,8 @@
 package document.dochandler.converter.impl;
 
+import document.dochandler.config.DocConfigLoader;
+import document.dochandler.converter.FileConverter;
+import document.dochandler.exception.BaseException;
 import document.dochandler.exception.FileConverterException;
 import document.dochandler.utils.FileValidatorUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -11,8 +14,17 @@ import org.apache.poi.xwpf.usermodel.*;
 
 import java.io.*;
 
-public class ToPDFConverter {
+public class ToPDFConverter implements FileConverter {
+    private DocConfigLoader configLoader;
 
+    public ToPDFConverter(DocConfigLoader configLoader) {
+        this.configLoader = configLoader;
+    }
+    String fontName = configLoader.get("pdf.font");
+    float fontSize = configLoader.getInt("pdf.fontSize");
+    float marginTop = configLoader.getInt("pdf.marginTop");
+    float marginLeft = configLoader.getInt("pdf.marginLeft");
+    float initialY = 800 - marginTop;
     /**
      * 将文件转换为 PDF 类型
      *
@@ -21,7 +33,8 @@ public class ToPDFConverter {
      * @return 转换后的 PDF 文件
      * @throws FileConverterException 如果转换失败
      */
-    public File toPdfHandler(File inputFile, String outputPath) {
+    @Override
+    public File ToPdfConvert(File inputFile, String outputPath) {
         try {
             if (!FileValidatorUtils.isFileValid(inputFile)) {
                 throw new FileConverterException("输入文件无效");
@@ -46,30 +59,44 @@ public class ToPDFConverter {
         }
     }
 
+    @Override
+    public File ToJsonConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
+    }
+    @Override
+    public File ToExcelConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
+    }
+    @Override
+    public File ToWordConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
+    }
+
     private File convertTxtToPdf(File inputFile, String outputPath) {
         PDDocument document = new PDDocument();
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
+
             PDPage page = new PDPage();
             document.addPage(page);
             PDPageContentStream contentStream = new PDPageContentStream(document, page);
             try {
-                contentStream.setFont(PDType1Font.COURIER, 12);
-                float y = 700; // 起始Y坐标
+                contentStream.setFont(PDType1Font.COURIER, fontSize);
+                float y = initialY; // 起始Y坐标
 
                 String line;
                 while ((line = reader.readLine()) != null) {
                     contentStream.beginText();
-                    contentStream.newLineAtOffset(50, y);
+                    contentStream.newLineAtOffset(marginLeft, y);
                     contentStream.showText(line);
                     contentStream.endText();
-                    y -= 15; // 行间距
+                    y -= (fontSize + 3); // 行间距
 
-                    if (y < 50) { // 换页逻辑
+                    if (y < marginLeft) { // 换页逻辑
                         contentStream.close();
                         page = new PDPage();
                         document.addPage(page);
                         contentStream = new PDPageContentStream(document, page);
-                        y = 700;
+                        y = initialY;
                     }
                 }
             } finally {
@@ -91,37 +118,23 @@ public class ToPDFConverter {
             PDPageContentStream contentStream = new PDPageContentStream(document, page);
 
             try {
-                contentStream.setFont(PDType1Font.COURIER, 12);
-                float y = 700; // 起始Y坐标
+                contentStream.setFont(PDType1Font.COURIER, fontSize);
+                float y = initialY; // 起始Y坐标
                 for (XWPFParagraph paragraph : wordDoc.getParagraphs()) {
                     String text = paragraph.getText();
                     if (!text.isEmpty()) {
                         contentStream.beginText();
-                        contentStream.newLineAtOffset(50, y);
-                        contentStream.showText(paragraph.getText());
+                        contentStream.newLineAtOffset(marginLeft, y);
+                        contentStream.showText(text);
                         contentStream.endText();
-                        y -= 15; // 行间距
+                        y -= (fontSize + 5); // 行间距
                     }
-                    if (y < 50) { // 换页逻辑
+                    if (y < marginTop) { // 换页逻辑
                         contentStream.close();
                         page = new PDPage();
                         document.addPage(page);
                         contentStream = new PDPageContentStream(document, page);
-                        y = 700;
-                    }
-                }
-
-                for (XWPFTable table : wordDoc.getTables()) {
-                    for (XWPFTableRow tableRow : table.getRows()) {
-                        StringBuilder rowText = new StringBuilder();
-                        for (XWPFTableCell cell : tableRow.getTableCells()) {
-                            rowText.append(cell.getText()).append(" | ");
-                        }
-                        contentStream.beginText();
-                        contentStream.newLineAtOffset(50, y);
-                        contentStream.showText(rowText.toString());
-                        contentStream.endText();
-                        y -= 15; // 行间距
+                        y = initialY;
                     }
                 }
 
@@ -144,25 +157,25 @@ public class ToPDFConverter {
 
             PDPageContentStream contentStream = new PDPageContentStream(document, page);
             try {
-                contentStream.setFont(PDType1Font.COURIER, 12);
-                float y = 700; // 起始Y坐标
+                contentStream.setFont(PDType1Font.COURIER, fontSize);
+                float y = initialY; // 起始Y坐标
                 for (Row row : sheet) {
                     StringBuilder rowText = new StringBuilder();
                     for (Cell cell : row) {
                         rowText.append(cell.toString()).append("\t");
                     }
                     contentStream.beginText();
-                    contentStream.newLineAtOffset(50, y);
+                    contentStream.newLineAtOffset(marginLeft, y);
                     contentStream.showText(rowText.toString());
                     contentStream.endText();
-                    y -= 15; // 行间距
+                    y -= (fontSize + 5); // 行间距
 
-                    if (y < 50) { // 换页逻辑
+                    if (y < marginTop) { // 换页逻辑
                         contentStream.close();
                         page = new PDPage();
                         document.addPage(page);
                         contentStream = new PDPageContentStream(document, page);
-                        y = 700;
+                        y = initialY;
                     }
                 }
             } finally {

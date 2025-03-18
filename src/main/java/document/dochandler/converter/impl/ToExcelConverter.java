@@ -1,5 +1,7 @@
 package document.dochandler.converter.impl;
 
+import document.dochandler.converter.FileConverter;
+import document.dochandler.exception.BaseException;
 import document.dochandler.exception.FileConverterException;
 import document.dochandler.utils.FileValidatorUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -14,8 +16,7 @@ import org.apache.poi.xwpf.usermodel.*;
 import java.io.*;
 import java.util.List;
 
-public class ToExcelConverter {
-
+public class ToExcelConverter implements FileConverter {
     /**
      * 将文件转换为 Excel 类型
      *
@@ -24,7 +25,8 @@ public class ToExcelConverter {
      * @return 转换后的 Excel 文件
      * @throws FileConverterException 如果转换失败
      */
-    public File toExcelHandler(File inputFile, String outputPath) {
+    @Override
+    public File ToExcelConvert(File inputFile, String outputPath) {
         try {
             if (!FileValidatorUtils.isFileValid(inputFile)) {
                 throw new Exception("输入文件无效");
@@ -47,6 +49,19 @@ public class ToExcelConverter {
         } catch (Exception e) {
             throw new FileConverterException("文件转换失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public File ToWordConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转excel");
+    }
+    @Override
+    public File ToPdfConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转excel");
+    }
+    @Override
+    public File ToJsonConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转excel");
     }
 
     private void convertTxtToExcel(File inputFile, String outputPath) {
@@ -139,4 +154,5 @@ public class ToExcelConverter {
     private boolean isTableRow(String line) {
         return line.matches("^\\d+.*\\d+$"); // 示例：行首末都有数字
     }
+
 }

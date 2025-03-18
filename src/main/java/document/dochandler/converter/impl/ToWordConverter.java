@@ -1,16 +1,30 @@
 package document.dochandler.converter.impl;
 
+import document.dochandler.config.DocConfigLoader;
+import document.dochandler.converter.FileConverter;
+import document.dochandler.exception.BaseException;
 import document.dochandler.exception.FileConverterException;
 import document.dochandler.utils.FileValidatorUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
 
 import java.io.*;
 
-public class ToWordConverter {
+public class ToWordConverter implements FileConverter {
+    private static DocConfigLoader docConfigLoader;
 
+    public ToWordConverter(DocConfigLoader docConfigLoader) {
+        this.docConfigLoader = docConfigLoader;
+    }
+    @Override
+    public File ToExcelConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
+    }
     /**
      * 将文件转换为 Word 类型
      *
@@ -19,7 +33,8 @@ public class ToWordConverter {
      * @return 转换后的文件对象
      * @throws FileConverterException 如果转换失败
      */
-    public File toWordHandler(File inputFile, String outputPath) {
+    @Override
+    public File ToWordConvert(File inputFile, String outputPath) {
         try {
             if (!FileValidatorUtils.isFileValid(inputFile)) {
                 throw new FileConverterException("输入文件无效");
@@ -44,6 +59,16 @@ public class ToWordConverter {
         } catch (Exception e) {
             throw new FileConverterException("文件转换为Word失败：" + e.getMessage());
         }
+    }
+
+    @Override
+    public File ToPdfConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
+    }
+
+    @Override
+    public File ToJsonConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
     }
 
     private void convertExcelToWord(File inputFile, String outputPath) throws IOException {
@@ -81,12 +106,14 @@ public class ToWordConverter {
         try (PDDocument document = PDDocument.load(inputFile)) {
             PDFTextStripper stripper = new PDFTextStripper();
             String pdfText = stripper.getText(document);
+            double lineSpacing = docConfigLoader.getWordLineSpacing();
 
             try (XWPFDocument wordDocument = new XWPFDocument()) {
                 XWPFParagraph paragraph = wordDocument.createParagraph();
                 XWPFRun run = paragraph.createRun();
+
                 run.setText(pdfText);
-                run.setFontSize(12);
+                paragraph.setSpacingBetween(lineSpacing);
 
                 try (FileOutputStream out = new FileOutputStream(outputPath)) {
                     wordDocument.write(out);
@@ -100,10 +127,15 @@ public class ToWordConverter {
     private void convertTxtToWord(File inputFile, String outputPath) throws IOException {
         try (XWPFDocument document = new XWPFDocument()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
+                double lineSpacing = docConfigLoader.getWordLineSpacing();
+
                 String line;
                 while ((line = reader.readLine()) != null) {
                     XWPFParagraph paragraph = document.createParagraph();
-                    paragraph.createRun().setText(line);
+                    XWPFRun run = paragraph.createRun();
+
+                    run.setText(line);
+                    paragraph.setSpacingBetween(lineSpacing);
                 }
             }
             try (FileOutputStream out = new FileOutputStream(outputPath)) {

@@ -1,19 +1,40 @@
-package document.dochandler.utils;
+package document.dochandler.converter.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import document.dochandler.converter.FileConverter;
+import document.dochandler.exception.BaseException;
+import document.dochandler.exception.FileConverterException;
+import document.dochandler.utils.FileValidatorUtils;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.*;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
-
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+public class ToJsonConverter implements FileConverter {
+    @Override
+    public File ToExcelConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转json文件");
+    }
 
-public class JsonUtils {
+    @Override
+    public File ToWordConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转json文件");
+    }
+
+    @Override
+    public File ToPdfConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转json文件");
+    }
     /**
      * 将文件转换为 json 数据
      *
@@ -21,9 +42,10 @@ public class JsonUtils {
      * @param outputPath     输出路径
      * @throws Exception 如果转换失败
      */
-    public File toJson(File inputFile, String outputPath) throws Exception  {
-        if (inputFile == null || !inputFile.exists()) {
-            throw new IllegalArgumentException("输入文件不存在");
+    @Override
+    public File ToJsonConvert(File inputFile, String outputPath) {
+        if (!FileValidatorUtils.isFileValid(inputFile)) {
+            throw new FileConverterException("输入文件不存在！");
         }
 
         if (outputPath == null || outputPath.isEmpty()) {
@@ -43,40 +65,42 @@ public class JsonUtils {
             // Excel 处理
             content = extractExcelContent(inputFile);
         } else {
-            throw new Exception("不支持的文件类型！");
+            throw new FileConverterException("不支持的文件类型！");
         }
 
         File jsonFile = new File(outputPath);
         ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(jsonFile, content);
-
+        try {
+            mapper.writeValue(jsonFile, content);
+        }catch (IOException e) {
+            throw new FileConverterException("转换为Json失败！");
+        }
         return jsonFile;
     }
-
     private List<Map<String, Object>> extractExcelContent(File inputFile) {
-     List<Map<String, Object>> content = new ArrayList<>();
-     try (FileInputStream fis = new FileInputStream(inputFile);
-         Workbook workbook = new XSSFWorkbook(fis)) {
+        List<Map<String, Object>> content = new ArrayList<>();
+        try (FileInputStream fis = new FileInputStream(inputFile);
+             Workbook workbook = new XSSFWorkbook(fis)) {
 
-         for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-             Sheet sheet = workbook.getSheetAt(i);
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
 
-             for (Row row : sheet) {
-                 Map<String, Object> rowData = new HashMap<>();
-                 List<String> cells = new ArrayList<>();
-                 for (Cell cell : row) {
-                     cell.setCellType(CellType.STRING);
-                     cells.add(cell.getStringCellValue());
+                for (Row row : sheet) {
+                    Map<String, Object> rowData = new HashMap<>();
+                    List<String> cells = new ArrayList<>();
+                    for (Cell cell : row) {
+                        cell.setCellType(CellType.STRING);
+                        cells.add(cell.getStringCellValue());
 
-                 }
-                 rowData.put("type", "row");
-                 rowData.put("cells", cells);
-                 content.add(rowData);
-             }
-         }
-     } catch (IOException e) {
-         throw new RuntimeException(e);
-     }
+                    }
+                    rowData.put("type", "row");
+                    rowData.put("cells", cells);
+                    content.add(rowData);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return content;
     }
 
@@ -105,7 +129,7 @@ public class JsonUtils {
     private List<Map<String, Object>> extractWordContent(File inputFile) {
         List<Map<String, Object>> content = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(inputFile);
-            XWPFDocument doc = new XWPFDocument(fis)) {
+             XWPFDocument doc = new XWPFDocument(fis)) {
 
             for (XWPFParagraph paragraph : doc.getParagraphs()) {
                 if (!paragraph.getText().isEmpty()) {
