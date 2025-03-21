@@ -19,4 +19,9 @@ public class GlobalExceptionHandler {
     public void fileConverterException(Exception ex) {
         logger.error("文件转换失败: {}", ex.getMessage(), ex);
     }
+
+    @ExceptionHandler(Exception.class)
+    public void FileTestException(Exception ex) {
+        logger.error("文件转换失败: {}", ex.getMessage(), ex);
+    }
 }

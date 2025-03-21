@@ -1,18 +1,20 @@
 package document.dochandler.config;
 
+import org.springframework.stereotype.Component;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-
+@Component
 public class DocConfigLoader {
     private Properties properties;
 
-    public DocConfigLoader(String configFilePath) {
+    public DocConfigLoader() {
         properties = new Properties();
-        try (FileInputStream input = new FileInputStream(configFilePath)) {
+        try (FileInputStream input = new FileInputStream("src/main/resources/application.properties")) {
             properties.load(input);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load configuration file.", e);
         }
     }
 
@@ -54,5 +56,8 @@ public class DocConfigLoader {
 
     public int getPdfMarginRight() {
         return getInt("pdf.marginRight");
+    }
+    public float getPdfLineSpacing() {
+        return Float.parseFloat(properties.getProperty("pdf.lineSpacing"));
     }
 }
