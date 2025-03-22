@@ -39,16 +39,14 @@ public class ToPDFTest {
         DocConfigLoader configLoader = new DocConfigLoader();
         ToPDFConverter converter = new ToPDFConverter(configLoader);
 
-//        String[] testFiles = {
-//                "sxs.txt",
-//                "2024奖学金推荐获奖人.pdf",
-//                "智控院反诈教育安排.xlsx",
-//                "补考复习提纲.docx"
-//        };
+        String[] testFiles = {
+                "sxs.txt",
+                "智控院反诈教育安排.xlsx",
+                "补考复习提纲.docx"
+        };
 
-        //for (String fileName : testFiles) {
-            String fileName = "sxs.txt";
-            File inputFile = new File("./documents/sxs.txt");
+        for (String fileName : testFiles) {
+            File inputFile = new File("./documents/" + fileName );
             String outputPath = rootPath + fileName.replaceFirst("[.][^.]+$", "") + "_converted.pdf";
 
             try {
@@ -63,7 +61,7 @@ public class ToPDFTest {
             } catch (FileConverterException e) {
                 // 捕获异常并打印错误信息
                 fail("文件转换失败：" + inputFile.getName() + "，错误原因：" + e.getMessage());
-            //}
+                }
         }
     }
 
