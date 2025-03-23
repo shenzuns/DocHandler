@@ -7,25 +7,34 @@ import document.dochandler.exception.FileConverterException;
 import document.dochandler.utils.FileValidatorUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.PDFTextStripperByArea;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-
 import java.io.*;
-
+@Component
 public class ToWordConverter implements FileConverter {
-    private static DocConfigLoader docConfigLoader;
+    private final DocConfigLoader configLoader;
+    private final String font;
+    private final float fontSize;
+    private final float marginTop;
+    private final float marginLeft;
+    private final float initialY;
+    private final float lineSpacing;
 
-    public ToWordConverter(DocConfigLoader docConfigLoader) {
-        this.docConfigLoader = docConfigLoader;
+    @Autowired
+    public ToWordConverter(DocConfigLoader configLoader) {
+        this.configLoader = configLoader;
+        this.font = configLoader.getPdfFont();
+        this.fontSize = configLoader.getPdfFontSize();
+        this.marginTop = configLoader.getPdfMarginTop();
+        this.marginLeft = configLoader.getPdfMarginLeft();
+        this.initialY = 800 - marginTop;
+        this.lineSpacing = configLoader.getPdfLineSpacing();
     }
-    @Override
-    public File ToExcelConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转PDF");
-    }
-    /**
+     /**
      * 将文件转换为 Word 类型
      *
      * @param inputFile      输入文件
@@ -70,79 +79,124 @@ public class ToWordConverter implements FileConverter {
     public File ToJsonConvert(File inputFile, String outputPath) {
         throw new BaseException("该实现类仅支持转PDF");
     }
-
-    private void convertExcelToWord(File inputFile, String outputPath) throws IOException {
-        FileInputStream excelFile = new FileInputStream(inputFile);
-        Workbook workbook = WorkbookFactory.create(excelFile);
-
-        XWPFDocument document = new XWPFDocument();
-
-        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-            Sheet sheet = workbook.getSheetAt(i);
-            XWPFTable table = document.createTable(sheet.getPhysicalNumberOfRows(), sheet.getRow(0).getPhysicalNumberOfCells());
-
-            for (int rowIndex = 0; rowIndex < sheet.getPhysicalNumberOfRows(); rowIndex++) {
-                Row row = sheet.getRow(rowIndex);
-                for (int colIndex = 0; colIndex < row.getPhysicalNumberOfCells(); colIndex++) {
-                    Cell cell = row.getCell(colIndex);
-                    String cellValue = cell.toString();
-
-                    table.getRow(rowIndex).getCell(colIndex).setText(cellValue);
-                }
-            }
-            document.createParagraph();
-        }
-
-        try (FileOutputStream outputStream = new FileOutputStream(outputPath)) {
-            document.write(outputStream);
-        }
-
-        workbook.close();
-        excelFile.close();
-        document.close();
+    @Override
+    public File ToExcelConvert(File inputFile, String outputPath) {
+        throw new BaseException("该实现类仅支持转PDF");
     }
 
-    private void convertPdfToWord(File inputFile, String outputPath) throws IOException {
-        try (PDDocument document = PDDocument.load(inputFile)) {
-            PDFTextStripper stripper = new PDFTextStripper();
-            String pdfText = stripper.getText(document);
-            double lineSpacing = docConfigLoader.getWordLineSpacing();
+    private void convertExcelToWord(File inputFile, String outputPath) {
+        try {
+            FileInputStream excelFile = new FileInputStream(inputFile);
+            Workbook workbook = WorkbookFactory.create(excelFile);
 
-            try (XWPFDocument wordDocument = new XWPFDocument()) {
+            XWPFDocument document = new XWPFDocument();
+
+            XWPFParagraph paragraph = document.createParagraph();
+            XWPFRun run = paragraph.createRun();
+            run.setFontFamily(font);
+            run.setFontSize(fontSize);
+            paragraph.setSpacingBetween(lineSpacing);
+
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                XWPFTable table = document.createTable(sheet.getPhysicalNumberOfRows(), sheet.getRow(0).getPhysicalNumberOfCells());
+
+                for (int rowIndex = 0; rowIndex < sheet.getPhysicalNumberOfRows(); rowIndex++) {
+                    Row row = sheet.getRow(rowIndex);
+                    for (int colIndex = 0; colIndex < row.getPhysicalNumberOfCells(); colIndex++) {
+                        Cell cell = row.getCell(colIndex);
+                        String cellValue = cell.toString();
+
+                        table.getRow(rowIndex).getCell(colIndex).setText(cellValue);
+                    }
+                }
+                document.createParagraph();
+            }
+
+            try (FileOutputStream outputStream = new FileOutputStream(outputPath)) {
+                document.write(outputStream);
+            }
+
+            workbook.close();
+            excelFile.close();
+            document.close();
+        }catch (Exception e) {
+            throw new FileConverterException("Excel 转换为 Word 失败：" + e.getMessage());
+        }
+    }
+
+    private void convertPdfToWord(File inputFile, String outputPath) {
+        try (PDDocument pdfDocument = PDDocument.load(inputFile);
+             XWPFDocument wordDocument = new XWPFDocument()) {
+
+            PDFTextStripperByArea stripper = new PDFTextStripperByArea();
+            stripper.setSortByPosition(true); // 按位置排序字符
+            PDFTextStripper textStripper = new PDFTextStripper();
+
+            textStripper.setSortByPosition(true); // 按位置信息提取每个字符
+            String pdfText = textStripper.getText(pdfDocument).trim();
+
+            // 提取每一页的内容
+            for (int pageIndex = 1; pageIndex <= pdfDocument.getNumberOfPages(); pageIndex++) {
+                textStripper.setStartPage(pageIndex);
+                textStripper.setEndPage(pageIndex);
+
+                // 按字符解析这一页
+                String pageText = textStripper.getText(pdfDocument);
+
                 XWPFParagraph paragraph = wordDocument.createParagraph();
                 XWPFRun run = paragraph.createRun();
 
-                run.setText(pdfText);
-                paragraph.setSpacingBetween(lineSpacing);
+                // 逐段、逐字进行格式控制
+                for (char c : pageText.toCharArray()) {
+                    if (isBold(c)) {
+                        run.setBold(true); // 设置加粗
+                    }
+                    run.setFontFamily(font); // 设置字体
+                    run.setFontSize(fontSize); // 设置默认字体大小
+                    run.setText(String.valueOf(c)); // 添加字符
 
-                try (FileOutputStream out = new FileOutputStream(outputPath)) {
-                    wordDocument.write(out);
+                    // 自行完成换行逻辑（写成新段落）的处理
+                    if (c == '\n') {
+                        paragraph = wordDocument.createParagraph();
+                        run = paragraph.createRun();
+                    }
                 }
             }
+
+            // 保存为 Word 文件
+            try (FileOutputStream out = new FileOutputStream(outputPath)) {
+                wordDocument.write(out);
+            }
         } catch (Exception e) {
-            throw new IOException("PDF 转换为 Word 失败：" + e.getMessage());
+            throw new FileConverterException("PDF 转 Word 失败：" + e.getMessage());
         }
     }
+    private boolean isBold(char c) {
+        // 模拟判断加粗：根据字体或样式特性自行实现判断
+        // 例如：特定区域、大文字、标识性字体等
+        return Character.isUpperCase(c); // 示例：大写字母默认加粗
+    }
 
-    private void convertTxtToWord(File inputFile, String outputPath) throws IOException {
+    private void convertTxtToWord(File inputFile, String outputPath) {
         try (XWPFDocument document = new XWPFDocument()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
-                double lineSpacing = docConfigLoader.getWordLineSpacing();
 
                 String line;
                 while ((line = reader.readLine()) != null) {
                     XWPFParagraph paragraph = document.createParagraph();
                     XWPFRun run = paragraph.createRun();
-
+                    run.setFontFamily(font);
+                    run.setFontSize(fontSize);
                     run.setText(line);
-                    paragraph.setSpacingBetween(lineSpacing);
+//                    paragraph.setSpacingBetween(lineSpacing);
                 }
             }
             try (FileOutputStream out = new FileOutputStream(outputPath)) {
                 document.write(out);
             }
         } catch (IOException e) {
-            throw new IOException("TXT 转换为 Word 失败：" + e.getMessage());
+            throw new FileConverterException("TXT 转换为 Word 失败：" + e.getMessage());
         }
     }
 }

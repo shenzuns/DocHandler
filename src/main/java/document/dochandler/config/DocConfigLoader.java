@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+
 @Component
 public class DocConfigLoader {
     private Properties properties;
@@ -30,8 +31,8 @@ public class DocConfigLoader {
         return Double.parseDouble(properties.getProperty(key));
     }
 
-    public double getWordLineSpacing() {
-        return getDouble("word.lineSpacing");
+    public float getFloat(String key) {
+        return Float.parseFloat(properties.getProperty(key));
     }
 
     public String getPdfFont() {
@@ -57,7 +58,33 @@ public class DocConfigLoader {
     public int getPdfMarginRight() {
         return getInt("pdf.marginRight");
     }
+
     public float getPdfLineSpacing() {
-        return Float.parseFloat(properties.getProperty("pdf.lineSpacing"));
+        return getFloat("pdf.lineSpacing");
     }
+
+    public String getWordFont() {
+        return get("word.font");
+    }
+
+    public int getWordFontSize() {
+        return getInt("word.fontSize");
+    }
+
+    public int getWordMarginTop() {
+        return getInt("word.marginTop");
+    }
+
+    public int getWordMarginBottom() {
+        return getInt("word.marginBottom");
+    }
+
+    public int getWordMarginLeft() {
+        return getInt("word.marginLeft");
+    }
+
+    public int getWordMarginRight() {
+        return getInt("word.marginRight");
+    }
+
 }

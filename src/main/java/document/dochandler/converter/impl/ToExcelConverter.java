@@ -13,9 +13,9 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.*;
 
+
 import java.io.*;
 import java.util.List;
-
 public class ToExcelConverter implements FileConverter {
     /**
      * 将文件转换为 Excel 类型
@@ -74,8 +74,14 @@ public class ToExcelConverter implements FileConverter {
             int rowIndex = 0;
 
             while ((line = reader.readLine()) != null) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(line);
+                // 判断是否可能是表格信息（比如用“，”或“\t”分隔的内容）
+                if (line.contains(",") || line.contains("\t")) {
+                    Row row = sheet.createRow(rowIndex++);
+                    String[] columns = line.split("[,\t]");
+                    for (int i = 0; i < columns.length; i++) {
+                        row.createCell(i).setCellValue(columns[i].trim());
+                    }
+                }
             }
 
             workbook.write(fos);
@@ -101,6 +107,7 @@ public class ToExcelConverter implements FileConverter {
                 int rowIndex = sheet.getLastRowNum() + 1;
 
                 for (String line : lines) {
+                    // 只处理可能包含表格的行
                     if (isTableRow(line)) {
                         Row row = sheet.createRow(rowIndex++);
                         String[] columns = splitToColumns(line);
@@ -112,26 +119,20 @@ public class ToExcelConverter implements FileConverter {
             }
             workbook.write(fos);
         } catch (IOException e) {
-            throw new FileConverterException("PDF转换Excel失败: " + e.getMessage());
+            throw new FileConverterException("PDF 提取表格转换为 Excel 失败：" + e.getMessage());
         }
     }
 
     private void convertWordToExcel(File inputFile, String outputPath) {
         try (FileInputStream fis = new FileInputStream(inputFile);
-             Workbook workbook = WorkbookFactory.create(fis);
+             Workbook workbook = new XSSFWorkbook();
              FileOutputStream fos = new FileOutputStream(outputPath)) {
 
             XWPFDocument document = new XWPFDocument(fis);
             Sheet sheet = workbook.createSheet("Sheet1");
             int rowIndex = 0;
 
-            for (XWPFParagraph paragraph : document.getParagraphs()) {
-                String text = paragraph.getText();
-                if (!text.isEmpty()) {
-                    Row row = sheet.createRow(rowIndex++);
-                    row.createCell(0).setCellValue(text);
-                }
-            }
+            // 仅提取表格
             for (XWPFTable table : document.getTables()) {
                 for (XWPFTableRow row : table.getRows()) {
                     Row excelRow = sheet.createRow(rowIndex++);
@@ -143,9 +144,10 @@ public class ToExcelConverter implements FileConverter {
             }
             workbook.write(fos);
         } catch (IOException e) {
-            throw new FileConverterException("Word转换Excel失败: " + e.getMessage());
+            throw new FileConverterException("Word 提取表格转换为 Excel 失败：" + e.getMessage());
         }
     }
+
 
     private String[] splitToColumns(String line) {
         return line.split("\\s{2,}"); // 按连续空格分割
