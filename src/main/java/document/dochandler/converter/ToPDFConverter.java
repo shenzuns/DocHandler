@@ -1,7 +1,6 @@
-package document.dochandler.converter.impl;
+package document.dochandler.converter;
 
 import document.dochandler.config.DocConfigLoader;
-import document.dochandler.converter.FileConverter;
 import document.dochandler.exception.BaseException;
 import document.dochandler.exception.FileConverterException;
 import document.dochandler.utils.FileValidatorUtils;
@@ -17,9 +16,9 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicReference;
 
 import java.io.*;
-import java.util.List;
+
 @Component
-public class ToPDFConverter implements FileConverter {
+public class ToPDFConverter {
     private final DocConfigLoader configLoader;
     private final String font;
     private final float fontSize;
@@ -46,45 +45,6 @@ public class ToPDFConverter implements FileConverter {
      * @return 转换后的 PDF 文件
      * @throws FileConverterException 如果转换失败
      */
-    @Override
-    public File ToPdfConvert(File inputFile, String outputPath) {
-        try {
-            if (!FileValidatorUtils.isFileValid(inputFile)) {
-                throw new FileConverterException("输入文件无效");
-            }
-
-            if (outputPath == null || outputPath.isEmpty()) {
-                outputPath = inputFile.getParent() + File.separator +
-                        inputFile.getName().replaceFirst("[.][^.]+$", "") + ".pdf";
-            }
-
-            if (inputFile.getName().endsWith(".txt")) {
-                return convertTxtToPdf(inputFile, outputPath);
-            } else if (inputFile.getName().endsWith(".xlsx") || inputFile.getName().endsWith(".xls")) {
-                return convertExcelToPdf(inputFile, outputPath);
-            } else if (inputFile.getName().endsWith(".doc") || inputFile.getName().endsWith(".docx")) {
-                return convertWordToPdf(inputFile, outputPath);
-            } else {
-                throw new FileConverterException("不支持的文件类型：" + inputFile.getName());
-            }
-        } catch (Exception e) {
-            throw new FileConverterException("文件转换失败：" + e.getMessage());
-        }
-    }
-
-    @Override
-    public File ToJsonConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转PDF");
-    }
-    @Override
-    public File ToExcelConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转PDF");
-    }
-    @Override
-    public File ToWordConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转PDF");
-    }
-
     public File convertTxtToPdf(File inputFile, String outputPath) {
         PDDocument document = new PDDocument();
 

@@ -1,7 +1,6 @@
-package document.dochandler.converter.impl;
+package document.dochandler.converter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import document.dochandler.converter.FileConverter;
 import document.dochandler.exception.BaseException;
 import document.dochandler.exception.FileConverterException;
 import document.dochandler.utils.FileValidatorUtils;
@@ -20,29 +19,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ToJsonConverter implements FileConverter {
-    @Override
-    public File ToExcelConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转json文件");
-    }
-
-    @Override
-    public File ToWordConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转json文件");
-    }
-
-    @Override
-    public File ToPdfConvert(File inputFile, String outputPath) {
-        throw new BaseException("该实现类仅支持转json文件");
-    }
-    /**
+public class ToJsonConverter {
+     /**
      * 将文件转换为 json 数据
      *
      * @param inputFile      输入文件
      * @param outputPath     输出路径
      * @throws Exception 如果转换失败
      */
-    @Override
     public File ToJsonConvert(File inputFile, String outputPath) {
         if (!FileValidatorUtils.isFileValid(inputFile)) {
             throw new FileConverterException("输入文件不存在！");
@@ -55,13 +39,7 @@ public class ToJsonConverter implements FileConverter {
 
         List<Map<String, Object>> content = new ArrayList<>();
 
-        if (inputFile.getName().endsWith(".doc") || inputFile.getName().endsWith(".docx")) {
-            // Word 处理
-            content = extractWordContent(inputFile);
-        } else if (inputFile.getName().endsWith(".pdf")) {
-            // PDF 处理
-            content = extractPdfContent(inputFile);
-        } else if (inputFile.getName().endsWith(".xls") || inputFile.getName().endsWith(".xlsx")) {
+       if (inputFile.getName().endsWith(".xls") || inputFile.getName().endsWith(".xlsx")) {
             // Excel 处理
             content = extractExcelContent(inputFile);
         } else {
